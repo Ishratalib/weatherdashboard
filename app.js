@@ -3,25 +3,25 @@
 // ==========================================
 let debounceTimer;
 let myChart;
-
+ 
 // ==========================================
 // ZONE 2: INITIALIZATION
 // ==========================================
 window.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("theme") || "dark";
   if (savedTheme === "dark") document.documentElement.classList.add("dark");
-
+ 
   renderSearchBar();
   renderFavoritesList();
   getWeather("London");
   updateDateTime();
   setInterval(updateDateTime, 1000);
 });
-
+ 
 // ==========================================
 // ZONE 3: FUNCTIONS
 // ==========================================
-
+ 
 // --- A. UI & ERROR HANDLING ---
 function showLoadingSkeletons() {
   const forecastSkeleton = `<div class="animate-pulse bg-slate-200 dark:bg-slate-700 rounded-2xl p-4 h-24"></div>`;
@@ -32,7 +32,7 @@ function showLoadingSkeletons() {
   document.getElementById("sunCard").innerHTML =
     '<div class="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded-3xl"></div>';
 }
-
+ 
 function renderError(message) {
   document.querySelector("main").innerHTML = `
     <div class="flex flex-col items-center justify-center h-full text-center p-10 bg-white dark:bg-[#2d2d5e] rounded-3xl">
@@ -41,7 +41,7 @@ function renderError(message) {
       <button onclick="location.reload()" class="bg-red-500 text-white px-6 py-2 rounded-xl hover:bg-red-600 transition">Retry</button>
     </div>`;
 }
-
+ 
 // --- B. GEOLOCATION ---
 function getMyLocation() {
   showToast("Fetching your location...", "info");
@@ -55,12 +55,12 @@ function getMyLocation() {
     showToast("Geolocation not supported.", "error");
   }
 }
-
+ 
 // --- C. THEME & SEARCH ---
 // Is code ko copy karke apni app.js mein purane setTheme ki jagah paste kar dein
 function setTheme(mode) {
   const root = document.documentElement;
-
+ 
   if (mode === "dark") {
     root.classList.add("dark");
     localStorage.setItem("theme", "dark");
@@ -68,12 +68,12 @@ function setTheme(mode) {
     root.classList.remove("dark");
     localStorage.setItem("theme", "light");
   }
-
+ 
   // Chart ke colors update karne ke liye
   if (typeof myChart !== "undefined" && myChart) {
     const isDark = root.classList.contains("dark");
     const gridColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
-
+ 
     myChart.options.scales.x.grid.color = gridColor;
     myChart.options.scales.y.grid.color = gridColor;
     myChart.options.scales.x.ticks.color = isDark ? "#fff" : "#000";
@@ -81,7 +81,7 @@ function setTheme(mode) {
     myChart.update();
   }
 }
-
+ 
 function renderSearchBar() {
   const searchContainer = document.getElementById("searchSection");
   if (searchContainer) {
@@ -95,7 +95,7 @@ function renderSearchBar() {
     });
   }
 }
-
+ 
 // --- D. DATA FETCHING ---
 async function getWeather(city) {
   try {
@@ -116,7 +116,7 @@ async function getWeather(city) {
     );
   }
 }
-
+ 
 // --- E. RENDERING COMPONENTS ---
 function renderCurrentWeather(data) {
   const favs = JSON.parse(localStorage.getItem("favs")) || [];
@@ -134,7 +134,7 @@ function renderCurrentWeather(data) {
         </div>
     </div>`;
 }
-
+ 
 function renderForecast(data) {
   document.getElementById("forecastContainer").innerHTML =
     data.forecast.forecastday
@@ -148,24 +148,68 @@ function renderForecast(data) {
       )
       .join("");
 }
-
+ 
 function renderAQI(data) {
   document.getElementById("aqiCard").innerHTML = `
     <h2 class="text-xl font-bold mb-4">Air Quality</h2>
-    <div class="grid grid-cols-2 gap-4">
-        ${["PM2.5", "PM10", "CO", "NO2"].map((key, i) => `<div class="bg-blue-50 dark:bg-slate-700/50 p-3 rounded-xl text-sm font-medium"> ${key}<br><span class="font-bold text-base">${Object.values(data.current.air_quality)[i].toFixed(1)}</span></div>`).join("")}
-    </div>`;
+ 
+    <div class="grid grid-cols-2 gap-3 sm:gap-4">
+      ${[
+        ["PM2.5", data.current.air_quality.pm2_5],
+        ["PM10", data.current.air_quality.pm10],
+        ["CO", data.current.air_quality.co],
+        ["NO2", data.current.air_quality.no2],
+      ]
+        .map(
+          ([key, val]) => `
+        <div class="bg-blue-50 dark:bg-slate-700/50 p-3 rounded-xl flex flex-col items-center justify-center text-center">
+          <p class="text-xs text-slate-400">${key}</p>
+          <p class="text-sm md:text-base font-bold">${Number(val).toFixed(1)}</p>
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
+  `;
 }
-
 function renderSunData(data) {
   document.getElementById("sunCard").innerHTML = `
     <h2 class="text-xl font-bold mb-4">Sun Cycle</h2>
-    <div class="space-y-4">
-        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center"><span class="font-medium">☀️ Sunrise</span><span class="font-bold">${data.forecast.forecastday[0].astro.sunrise}</span></div>
-        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center"><span class="font-medium">🌙 Sunset</span><span class="font-bold">${data.forecast.forecastday[0].astro.sunset}</span></div>
-    </div>`;
+ 
+    <div class="space-y-3 w-full">
+ 
+      <!-- SUNRISE -->
+      <div class="bg-blue-50 dark:bg-slate-700/50 p-3 rounded-xl flex items-center justify-between w-full min-w-0">
+ 
+        <div class="flex items-center gap-2 shrink-0">
+          <span>☀️</span>
+          <span class="font-medium text-sm sm:text-base">Sunrise</span>
+        </div>
+ 
+        <span class="font-bold text-sm sm:text-base truncate max-w-[120px] text-right">
+          ${data.forecast.forecastday[0].astro.sunrise}
+        </span>
+ 
+      </div>
+ 
+      <!-- SUNSET -->
+      <div class="bg-blue-50 dark:bg-slate-700/50 p-3 rounded-xl flex items-center justify-between w-full min-w-0">
+ 
+        <div class="flex items-center gap-2 shrink-0">
+          <span>🌙</span>
+          <span class="font-medium text-sm sm:text-base">Sunset</span>
+        </div>
+ 
+        <span class="font-bold text-sm sm:text-base truncate max-w-[120px] text-right">
+          ${data.forecast.forecastday[0].astro.sunset}
+        </span>
+ 
+      </div>
+ 
+    </div>
+  `;
 }
-
+ 
 function renderChart(data) {
   const ctx = document.getElementById("tempChart").getContext("2d");
   if (myChart) myChart.destroy();
@@ -188,7 +232,7 @@ function renderChart(data) {
     options: { responsive: true, maintainAspectRatio: false },
   });
 }
-
+ 
 function showToast(message, type = "info") {
   const container = document.getElementById("toastContainer");
   const toast = document.createElement("div");
@@ -197,7 +241,7 @@ function showToast(message, type = "info") {
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
-
+ 
 function toggleFavourite(city) {
   let favs = JSON.parse(localStorage.getItem("favs")) || [];
   favs.includes(city)
@@ -206,7 +250,7 @@ function toggleFavourite(city) {
   localStorage.setItem("favs", JSON.stringify(favs));
   renderFavoritesList();
 }
-
+ 
 async function renderFavoritesList() {
   const favs = JSON.parse(localStorage.getItem("favs")) || [];
   const container = document.getElementById("favCardsContainer");
@@ -220,7 +264,7 @@ async function renderFavoritesList() {
     )
     .join("");
 }
-
+ 
 async function getFavoriteData(city) {
   try {
     return await (
@@ -230,7 +274,7 @@ async function getFavoriteData(city) {
     return null;
   }
 }
-
+ 
 function updateDateTime() {
   const now = new Date();
   document.getElementById("clock").textContent = now.toLocaleTimeString(

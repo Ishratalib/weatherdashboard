@@ -5,50 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: "class" };</script>
+    <script>
+      tailwind.config = { darkMode: "class" };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
-
+ 
   <body class="bg-blue-50 dark:bg-slate-900 text-slate-900 dark:text-white min-h-screen p-2 md:p-4 transition-colors duration-300">
+   
     <div class="flex flex-col md:flex-row gap-4 h-auto md:h-screen">
-      <aside class="w-full md:w-20 bg-white dark:bg-[#23234d] border border-slate-200 dark:border-none rounded-3xl flex flex-row md:flex-col justify-around md:justify-start items-center py-4 md:py-6 shadow-sm transition-colors duration-300">
-        <div class="text-xl md:text-2xl cursor-pointer">🏠</div>
-      </aside>
-
-      <main class="flex-1 flex flex-col gap-4 overflow-y-auto p-0 md:p-4">
+     
+     <aside class="fixed top-0 left-0 md:left-0 w-full md:w-20 h-14 md:h-screen z-50
+bg-white dark:bg-[#23234d] border-b md:border-r border-slate-200 dark:border-none
+flex flex-row md:flex-col items-center justify-between md:justify-start md:py-6
+shadow-sm transition-colors duration-300">
+ 
+  <div class="text-xl md:text-2xl cursor-pointer ml-4 md:ml-0 md:mb-6">🏠</div>
+ 
+</aside>
+ 
+      <main class="order-2 md:order-2 flex-1 flex flex-col gap-4 overflow-y-auto p-2 md:p-4 mt-16 md:mt-0 md:ml-20">
+       
         <div id="headerSection" class="bg-white dark:bg-[#2d2d5e] border border-slate-100 dark:border-none rounded-3xl p-6 flex flex-col md:flex-row justify-between items-center shadow-sm">
           <div>
             <div id="clock" class="text-4xl md:text-6xl font-bold tracking-tight">--:--</div>
             <div id="date" class="text-slate-500 dark:text-gray-300 text-sm md:text-lg mb-4">---, -- ----</div>
           </div>
-          
           <div class="flex gap-2">
             <button onclick="setTheme('light')" class="p-2 bg-slate-100 dark:bg-[#23234d] rounded-full hover:scale-110 transition-transform">☀️</button>
             <button onclick="setTheme('dark')" class="p-2 bg-slate-100 dark:bg-[#23234d] rounded-full hover:scale-110 transition-transform">🌙</button>
           </div>
         </div>
-
-        <div id="forecastContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-4"></div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div id="aqiCard" class="bg-white dark:bg-[#2d2d5e] rounded-3xl p-5 min-h-[200px] shadow-sm"></div>
-          <div id="sunCard" class="bg-white dark:bg-[#2d2d5e] rounded-3xl p-5 min-h-[200px] shadow-sm"></div>
+ 
+        <div  id="forecastContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4"></div>
+ 
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+          <div id="aqiCard" class="bg-white dark:bg-[#2d2d5e] rounded-3xl p-5 min-h-[220px] h-full shadow-sm"></div>
+          <div id="sunCard" class="bg-white dark:bg-[#2d2d5e] rounded-3xl p-5 min-h-[220px] h-full shadow-sm"></div>
         </div>
-
-        <div class="bg-white dark:bg-[#2d2d5e] rounded-3xl p-5 shadow-sm h-64">
+ 
+        <div class="bg-white dark:bg-[#2d2d5e] rounded-3xl p-5 shadow-sm h-64 md:h-72 lg:h-80">
           <canvas id="tempChart"></canvas>
         </div>
       </main>
-
-      <section class="w-full md:w-[320px] flex flex-col gap-4">
+ 
+      <section class="order-1 md:order-3 w-full md:w-[320px] flex flex-col gap-4 mt-16 md:mt-0">
         <div id="searchSection"></div>
         <button onclick="getMyLocation()" class="bg-blue-600 text-white p-3 rounded-2xl w-full hover:bg-blue-700 transition">📍 Use My Location</button>
         <div id="currentWeather"></div>
         <div id="favCardsContainer" class="flex flex-col gap-3"></div>
       </section>
+     
     </div>
-
+ 
     <div id="toastContainer" class="fixed top-5 right-5 z-50"></div>
+   
     <script src="config.js"></script>
     <script src="app.js"></script>
   </body>
