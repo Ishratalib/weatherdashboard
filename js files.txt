@@ -1,0 +1,752 @@
+// ==========================================
+// ZONE 1: CONFIGURATION & GLOBALS
+// ==========================================
+// const BASE_URL = "https://api.weatherapi.com/v1/forecast.json";
+let debounceTimer;
+let myChart;
+
+// ==========================================
+// ZONE 2: INITIALIZATION
+// ==========================================
+window.addEventListener("DOMContentLoaded", () => {
+  renderSearchBaar();
+  renderFavoritesList();
+  getWeather("London");
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+});
+
+// ==========================================
+// ZONE 3: FUNCTIONS
+// ==========================================
+
+// --- A. GLOBAL MASTER THEME TOGGLE FUNCTION ---
+function setTheme(mode) {
+  const root = document.documentElement;
+  const body = document.body;
+
+  if (mode === "dark") {
+    root.classList.add("dark");
+    body.classList.remove("bg-blue-50");
+    body.classList.add("bg-slate-900");
+  } else {
+    root.classList.remove("dark");
+    body.classList.remove("bg-slate-900");
+    body.classList.add("bg-blue-50");
+  }
+
+  // REPAIRED: This logic is now correctly INSIDE the setTheme function
+  if (myChart) {
+    const isDark = root.classList.contains("dark");
+    myChart.options.scales.x.grid.color = isDark
+      ? "rgba(255,255,255,0.1)"
+      : "rgba(0,0,0,0.05)";
+    myChart.options.scales.y.grid.color = isDark
+      ? "rgba(255,255,255,0.1)"
+      : "rgba(0,0,0,0.05)";
+    myChart.update();
+  }
+}
+
+// --- B. WEATHER API NETWORK DATA RETRIEVAL ---
+async function getWeather(city) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}?key=${API_KEY}&q=${city}&days=5&aqi=yes&alerts=no`,
+    );
+    if (!response.ok) throw new Error("City not found");
+    const data = await response.json();
+
+    renderCurrentWeather(data);
+    renderForecast(data);
+    renderAQI(data);
+    renderSunData(data);
+    renderChart(data);
+    showToast(`Weather updated for ${data.location.name}`, "success");
+  } catch (error) {
+    console.error(error);
+    showToast("City not found. Please try again.", "error");
+  }
+}
+
+// --- C. COMPONENT RENDERING ---
+function renderSearchBar() {
+  const searchContainer = document.getElementById("searchSection");
+  if (searchContainer) {
+    searchContainer.innerHTML = `
+      <input id="cityInput" type="text" placeholder="Search city..." 
+      autocomplete="off"
+      class="bg-white dark:bg-[#2d2d5e] text-slate-900 dark:text-white px-4 py-3 rounded-2xl w-full outline-none border border-slate-200 dark:border-none shadow-sm transition-colors duration-300 placeholder-slate-400"/>
+    `;
+    document.getElementById("cityInput").addEventListener("input", (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const query = e.target.value.trim();
+        if (query.length >= 3) getWeather(query);
+      }, 1000);
+    });
+  }
+}
+function renderCurrentWeather(data) {
+  const favs = JSON.parse(localStorage.getItem("favs")) || [];
+  const isFav = favs.includes(data.location.name);
+  const heartColor = isFav ? "text-red-500" : "text-white";
+
+  document.getElementById("currentWeather").innerHTML = `
+    <div class="bg-blue-400 rounded-3xl p-6 h-full text-white relative shadow-md">
+        <button onclick="toggleFavourite('${data.location.name}')" class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform cursor-pointer ${heartColor}">❤️</button>
+        <h2 class="text-2xl font-bold">${data.location.name}</h2>
+        <img class="w-28 mx-auto" src="${data.current.condition.icon}">
+        <h1 class="text-6xl font-bold text-center my-4">${Math.round(data.current.temp_c)}°</h1>
+        <p class="text-center text-lg font-medium">${data.current.condition.text}</p>
+        <div class="grid grid-cols-2 gap-3 mt-6">
+            <div class="bg-white/20 p-3 rounded-xl"><p class="text-xs opacity-80">Wind</p><h3 class="font-bold">${data.current.wind_kph} km/h</h3></div>
+            <div class="bg-white/20 p-3 rounded-xl"><p class="text-xs opacity-80">Humidity</p><h3 class="font-bold">${data.current.humidity}%</h3></div>
+        </div>
+    </div>
+  `;
+}
+
+function renderForecast(data) {
+  document.getElementById("forecastContainer").innerHTML =
+    data.forecast.forecastday
+      .map(
+        (day) => `
+    <div class="bg-white dark:bg-[#2d2d5e] border border-slate-200 dark:border-none rounded-2xl p-4 text-center shadow-sm text-slate-900 dark:text-white transition-colors duration-300">
+        <h3 class="text-sm font-medium text-slate-500 dark:text-gray-400">${new Date(day.date).toLocaleDateString("en-US", { weekday: "short" })}</h3>
+        <img class="w-12 mx-auto" src="${day.day.condition.icon}">
+        <p class="font-bold mt-2">${Math.round(day.day.maxtemp_c)}° / ${Math.round(day.day.mintemp_c)}°</p>
+    </div>
+  `,
+      )
+      .join("");
+}
+
+function renderAQI(data) {
+  document.getElementById("aqiCard").innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Air Quality</h2>
+    <div class="grid grid-cols-2 gap-4">
+        <div class="bg-blue-50 dark:bg-green-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">PM2.5<br><span class="font-bold text-base">${data.current.air_quality.pm2_5.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-yellow-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">PM10<br><span class="font-bold text-base">${data.current.air_quality.pm10.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-red-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">CO<br><span class="font-bold text-base">${data.current.air_quality.co.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-blue-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">NO2<br><span class="font-bold text-base">${data.current.air_quality.no2.toFixed(1)}</span></div>
+    </div>
+  `;
+}
+
+function renderSunData(data) {
+  document.getElementById("sunCard").innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Sun Cycle</h2>
+    <div class="space-y-4">
+        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center transition-colors duration-300">
+          <span class="font-medium">☀️ Sunrise</span>
+          <span class="font-bold">${data.forecast.forecastday[0].astro.sunrise}</span>
+        </div>
+        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center transition-colors duration-300">
+          <span class="font-medium">🌙 Sunset</span>
+          <span class="font-bold">${data.forecast.forecastday[0].astro.sunset}</span>
+        </div>
+    </div>
+  `;
+}
+
+function renderChart(data) {
+  const ctx = document.getElementById("tempChart").getContext("2d");
+  const hourlyData = data.forecast.forecastday[0].hour;
+  const labels = hourlyData.map((h) => h.time.split(" ")[1]);
+  const temps = hourlyData.map((h) => h.temp_c);
+
+  if (myChart) myChart.destroy();
+  myChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Temp (°C)",
+          data: temps,
+          borderColor: "#7aa2ff",
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    },
+    options: { responsive: true, maintainAspectRatio: false },
+  });
+}
+
+// --- D. UTILITIES ---
+function showToast(message, type = "info") {
+  const container = document.getElementById("toastContainer");
+  const toast = document.createElement("div");
+  const colors = {
+    success: "bg-green-600",
+    error: "bg-red-600",
+    info: "bg-blue-600",
+  };
+  toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg mb-2 transition-all`;
+  toast.innerText = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function toggleFavourite(city) {
+  let favs = JSON.parse(localStorage.getItem("favs")) || [];
+  if (favs.includes(city)) {
+    favs = favs.filter((item) => item !== city);
+    showToast(`${city} removed`, "info");
+  } else {
+    favs.unshift(city);
+    showToast(`${city} added to favourites!`, "success");
+  }
+  localStorage.setItem("favs", JSON.stringify(favs));
+  renderFavoritesList();
+}
+
+async function renderFavoritesList() {
+  const favs = JSON.parse(localStorage.getItem("favs")) || [];
+  const favContainer = document.getElementById("favCardsContainer");
+  if (!favContainer) return;
+  const recentFavs = favs.slice(0, 2);
+  const colors = ["bg-pink-500", "bg-orange-400"];
+  const favResults = await Promise.all(
+    recentFavs.map((city) => getFavoriteData(city)),
+  );
+  favContainer.innerHTML = favResults
+    .map((data, index) => {
+      if (!data) return "";
+      return `
+      <button onclick="getWeather('${data.location.name}')" class="${colors[index]} p-4 rounded-3xl w-full text-white flex justify-between items-center transition-transform hover:scale-[1.02] shadow-sm">
+        <div class="text-[10px] text-left"><div>💨 Wind: ${data.current.wind_kph} km/h</div><div>💧 Hum: ${data.current.humidity} %</div></div>
+        <div class="text-right"><div>📍 ${data.location.name}</div><div class="text-2xl font-bold">${Math.round(data.current.temp_c)}°</div></div>
+      </button>`;
+    })
+    .join("");
+}
+
+async function getFavoriteData(city) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}?key=${API_KEY}&q=${city}&aqi=no&alerts=no`,
+    );
+    return await response.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString(
+    "en-US",
+    { hour: "2-digit", minute: "2-digit", hour12: true },
+  );
+  document.getElementById("date").textContent = now.toLocaleDateString(
+    "en-US",
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+  );
+}
+
+
+// ==========================================
+// ZONE 1: CONFIGURATION & GLOBALS
+// ==========================================
+// const BASE_URL = "https://api.weatherapi.com/v1/forecast.json";
+let debounceTimer;
+let myChart;
+
+// ==========================================
+// ZONE 2: INITIALIZATION
+// ==========================================
+window.addEventListener("DOMContentLoaded", () => {
+  renderSearchBaar();
+  renderFavoritesList();
+  getWeather("London");
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+});
+
+// ==========================================
+// ZONE 3: FUNCTIONS
+// ==========================================
+
+// --- A. GLOBAL MASTER THEME TOGGLE FUNCTION ---
+function setTheme(mode) {
+  const root = document.documentElement;
+  const body = document.body;
+
+  if (mode === "dark") {
+    root.classList.add("dark");
+    body.classList.remove("bg-blue-50");
+    body.classList.add("bg-slate-900");
+  } else {
+    root.classList.remove("dark");
+    body.classList.remove("bg-slate-900");
+    body.classList.add("bg-blue-50");
+  }
+
+  // REPAIRED: This logic is now correctly INSIDE the setTheme function
+  if (myChart) {
+    const isDark = root.classList.contains("dark");
+    myChart.options.scales.x.grid.color = isDark
+      ? "rgba(255,255,255,0.1)"
+      : "rgba(0,0,0,0.05)";
+    myChart.options.scales.y.grid.color = isDark
+      ? "rgba(255,255,255,0.1)"
+      : "rgba(0,0,0,0.05)";
+    myChart.update();
+  }
+}
+
+// --- B. WEATHER API NETWORK DATA RETRIEVAL ---
+async function getWeather(city) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}?key=${API_KEY}&q=${city}&days=5&aqi=yes&alerts=no`,
+    );
+    if (!response.ok) throw new Error("City not found");
+    const data = await response.json();
+
+    renderCurrentWeather(data);
+    renderForecast(data);
+    renderAQI(data);
+    renderSunData(data);
+    renderChart(data);
+    showToast(`Weather updated for ${data.location.name}`, "success");
+  } catch (error) {
+    console.error(error);
+    showToast("City not found. Please try again.", "error");
+  }
+}
+
+// --- C. COMPONENT RENDERING ---
+function renderSearchBar() {
+  const searchContainer = document.getElementById("searchSection");
+  if (searchContainer) {
+    searchContainer.innerHTML = `
+      <input id="cityInput" type="text" placeholder="Search city..." 
+      autocomplete="off"
+      class="bg-white dark:bg-[#2d2d5e] text-slate-900 dark:text-white px-4 py-3 rounded-2xl w-full outline-none border border-slate-200 dark:border-none shadow-sm transition-colors duration-300 placeholder-slate-400"/>
+    `;
+    document.getElementById("cityInput").addEventListener("input", (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const query = e.target.value.trim();
+        if (query.length >= 3) getWeather(query);
+      }, 1000);
+    });
+  }
+}
+function renderCurrentWeather(data) {
+  const favs = JSON.parse(localStorage.getItem("favs")) || [];
+  const isFav = favs.includes(data.location.name);
+  const heartColor = isFav ? "text-red-500" : "text-white";
+
+  document.getElementById("currentWeather").innerHTML = `
+    <div class="bg-blue-400 rounded-3xl p-6 h-full text-white relative shadow-md">
+        <button onclick="toggleFavourite('${data.location.name}')" class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform cursor-pointer ${heartColor}">❤️</button>
+        <h2 class="text-2xl font-bold">${data.location.name}</h2>
+        <img class="w-28 mx-auto" src="${data.current.condition.icon}">
+        <h1 class="text-6xl font-bold text-center my-4">${Math.round(data.current.temp_c)}°</h1>
+        <p class="text-center text-lg font-medium">${data.current.condition.text}</p>
+        <div class="grid grid-cols-2 gap-3 mt-6">
+            <div class="bg-white/20 p-3 rounded-xl"><p class="text-xs opacity-80">Wind</p><h3 class="font-bold">${data.current.wind_kph} km/h</h3></div>
+            <div class="bg-white/20 p-3 rounded-xl"><p class="text-xs opacity-80">Humidity</p><h3 class="font-bold">${data.current.humidity}%</h3></div>
+        </div>
+    </div>
+  `;
+}
+
+function renderForecast(data) {
+  document.getElementById("forecastContainer").innerHTML =
+    data.forecast.forecastday
+      .map(
+        (day) => `
+    <div class="bg-white dark:bg-[#2d2d5e] border border-slate-200 dark:border-none rounded-2xl p-4 text-center shadow-sm text-slate-900 dark:text-white transition-colors duration-300">
+        <h3 class="text-sm font-medium text-slate-500 dark:text-gray-400">${new Date(day.date).toLocaleDateString("en-US", { weekday: "short" })}</h3>
+        <img class="w-12 mx-auto" src="${day.day.condition.icon}">
+        <p class="font-bold mt-2">${Math.round(day.day.maxtemp_c)}° / ${Math.round(day.day.mintemp_c)}°</p>
+    </div>
+  `,
+      )
+      .join("");
+}
+
+function renderAQI(data) {
+  document.getElementById("aqiCard").innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Air Quality</h2>
+    <div class="grid grid-cols-2 gap-4">
+        <div class="bg-blue-50 dark:bg-green-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">PM2.5<br><span class="font-bold text-base">${data.current.air_quality.pm2_5.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-yellow-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">PM10<br><span class="font-bold text-base">${data.current.air_quality.pm10.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-red-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">CO<br><span class="font-bold text-base">${data.current.air_quality.co.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-blue-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">NO2<br><span class="font-bold text-base">${data.current.air_quality.no2.toFixed(1)}</span></div>
+    </div>
+  `;
+}
+
+function renderSunData(data) {
+  document.getElementById("sunCard").innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Sun Cycle</h2>
+    <div class="space-y-4">
+        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center transition-colors duration-300">
+          <span class="font-medium">☀️ Sunrise</span>
+          <span class="font-bold">${data.forecast.forecastday[0].astro.sunrise}</span>
+        </div>
+        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center transition-colors duration-300">
+          <span class="font-medium">🌙 Sunset</span>
+          <span class="font-bold">${data.forecast.forecastday[0].astro.sunset}</span>
+        </div>
+    </div>
+  `;
+}
+
+function renderChart(data) {
+  const ctx = document.getElementById("tempChart").getContext("2d");
+  const hourlyData = data.forecast.forecastday[0].hour;
+  const labels = hourlyData.map((h) => h.time.split(" ")[1]);
+  const temps = hourlyData.map((h) => h.temp_c);
+
+  if (myChart) myChart.destroy();
+  myChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Temp (°C)",
+          data: temps,
+          borderColor: "#7aa2ff",
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    },
+    options: { responsive: true, maintainAspectRatio: false },
+  });
+}
+
+// --- D. UTILITIES ---
+function showToast(message, type = "info") {
+  const container = document.getElementById("toastContainer");
+  const toast = document.createElement("div");
+  const colors = {
+    success: "bg-green-600",
+    error: "bg-red-600",
+    info: "bg-blue-600",
+  };
+  toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg mb-2 transition-all`;
+  toast.innerText = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function toggleFavourite(city) {
+  let favs = JSON.parse(localStorage.getItem("favs")) || [];
+  if (favs.includes(city)) {
+    favs = favs.filter((item) => item !== city);
+    showToast(`${city} removed`, "info");
+  } else {
+    favs.unshift(city);
+    showToast(`${city} added to favourites!`, "success");
+  }
+  localStorage.setItem("favs", JSON.stringify(favs));
+  renderFavoritesList();
+}
+
+async function renderFavoritesList() {
+  const favs = JSON.parse(localStorage.getItem("favs")) || [];
+  const favContainer = document.getElementById("favCardsContainer");
+  if (!favContainer) return;
+  const recentFavs = favs.slice(0, 2);
+  const colors = ["bg-pink-500", "bg-orange-400"];
+  const favResults = await Promise.all(
+    recentFavs.map((city) => getFavoriteData(city)),
+  );
+  favContainer.innerHTML = favResults
+    .map((data, index) => {
+      if (!data) return "";
+      return `
+      <button onclick="getWeather('${data.location.name}')" class="${colors[index]} p-4 rounded-3xl w-full text-white flex justify-between items-center transition-transform hover:scale-[1.02] shadow-sm">
+        <div class="text-[10px] text-left"><div>💨 Wind: ${data.current.wind_kph} km/h</div><div>💧 Hum: ${data.current.humidity} %</div></div>
+        <div class="text-right"><div>📍 ${data.location.name}</div><div class="text-2xl font-bold">${Math.round(data.current.temp_c)}°</div></div>
+      </button>`;
+    })
+    .join("");
+}
+
+async function getFavoriteData(city) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}?key=${API_KEY}&q=${city}&aqi=no&alerts=no`,
+    );
+    return await response.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString(
+    "en-US",
+    { hour: "2-digit", minute: "2-digit", hour12: true },
+  );
+  document.getElementById("date").textContent = now.toLocaleDateString(
+    "en-US",
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+  );
+}
+
+
+// ==========================================
+// ZONE 1: CONFIGURATION & GLOBALS
+// ==========================================
+// const BASE_URL = "https://api.weatherapi.com/v1/forecast.json";
+let debounceTimer;
+let myChart;
+
+// ==========================================
+// ZONE 2: INITIALIZATION
+// ==========================================
+window.addEventListener("DOMContentLoaded", () => {
+  renderSearchBaar();
+  renderFavoritesList();
+  getWeather("London");
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+});
+
+// ==========================================
+// ZONE 3: FUNCTIONS
+// ==========================================
+
+// --- A. GLOBAL MASTER THEME TOGGLE FUNCTION ---
+function setTheme(mode) {
+  const root = document.documentElement;
+  const body = document.body;
+
+  if (mode === "dark") {
+    root.classList.add("dark");
+    body.classList.remove("bg-blue-50");
+    body.classList.add("bg-slate-900");
+  } else {
+    root.classList.remove("dark");
+    body.classList.remove("bg-slate-900");
+    body.classList.add("bg-blue-50");
+  }
+
+  // REPAIRED: This logic is now correctly INSIDE the setTheme function
+  if (myChart) {
+    const isDark = root.classList.contains("dark");
+    myChart.options.scales.x.grid.color = isDark
+      ? "rgba(255,255,255,0.1)"
+      : "rgba(0,0,0,0.05)";
+    myChart.options.scales.y.grid.color = isDark
+      ? "rgba(255,255,255,0.1)"
+      : "rgba(0,0,0,0.05)";
+    myChart.update();
+  }
+}
+
+// --- B. WEATHER API NETWORK DATA RETRIEVAL ---
+async function getWeather(city) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}?key=${API_KEY}&q=${city}&days=5&aqi=yes&alerts=no`,
+    );
+    if (!response.ok) throw new Error("City not found");
+    const data = await response.json();
+
+    renderCurrentWeather(data);
+    renderForecast(data);
+    renderAQI(data);
+    renderSunData(data);
+    renderChart(data);
+    showToast(`Weather updated for ${data.location.name}`, "success");
+  } catch (error) {
+    console.error(error);
+    showToast("City not found. Please try again.", "error");
+  }
+}
+
+// --- C. COMPONENT RENDERING ---
+function renderSearchBar() {
+  const searchContainer = document.getElementById("searchSection");
+  if (searchContainer) {
+    searchContainer.innerHTML = `
+      <input id="cityInput" type="text" placeholder="Search city..." 
+      autocomplete="off"
+      class="bg-white dark:bg-[#2d2d5e] text-slate-900 dark:text-white px-4 py-3 rounded-2xl w-full outline-none border border-slate-200 dark:border-none shadow-sm transition-colors duration-300 placeholder-slate-400"/>
+    `;
+    document.getElementById("cityInput").addEventListener("input", (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const query = e.target.value.trim();
+        if (query.length >= 3) getWeather(query);
+      }, 1000);
+    });
+  }
+}
+function renderCurrentWeather(data) {
+  const favs = JSON.parse(localStorage.getItem("favs")) || [];
+  const isFav = favs.includes(data.location.name);
+  const heartColor = isFav ? "text-red-500" : "text-white";
+
+  document.getElementById("currentWeather").innerHTML = `
+    <div class="bg-blue-400 rounded-3xl p-6 h-full text-white relative shadow-md">
+        <button onclick="toggleFavourite('${data.location.name}')" class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform cursor-pointer ${heartColor}">❤️</button>
+        <h2 class="text-2xl font-bold">${data.location.name}</h2>
+        <img class="w-28 mx-auto" src="${data.current.condition.icon}">
+        <h1 class="text-6xl font-bold text-center my-4">${Math.round(data.current.temp_c)}°</h1>
+        <p class="text-center text-lg font-medium">${data.current.condition.text}</p>
+        <div class="grid grid-cols-2 gap-3 mt-6">
+            <div class="bg-white/20 p-3 rounded-xl"><p class="text-xs opacity-80">Wind</p><h3 class="font-bold">${data.current.wind_kph} km/h</h3></div>
+            <div class="bg-white/20 p-3 rounded-xl"><p class="text-xs opacity-80">Humidity</p><h3 class="font-bold">${data.current.humidity}%</h3></div>
+        </div>
+    </div>
+  `;
+}
+
+function renderForecast(data) {
+  document.getElementById("forecastContainer").innerHTML =
+    data.forecast.forecastday
+      .map(
+        (day) => `
+    <div class="bg-white dark:bg-[#2d2d5e] border border-slate-200 dark:border-none rounded-2xl p-4 text-center shadow-sm text-slate-900 dark:text-white transition-colors duration-300">
+        <h3 class="text-sm font-medium text-slate-500 dark:text-gray-400">${new Date(day.date).toLocaleDateString("en-US", { weekday: "short" })}</h3>
+        <img class="w-12 mx-auto" src="${day.day.condition.icon}">
+        <p class="font-bold mt-2">${Math.round(day.day.maxtemp_c)}° / ${Math.round(day.day.mintemp_c)}°</p>
+    </div>
+  `,
+      )
+      .join("");
+}
+
+function renderAQI(data) {
+  document.getElementById("aqiCard").innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Air Quality</h2>
+    <div class="grid grid-cols-2 gap-4">
+        <div class="bg-blue-50 dark:bg-green-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">PM2.5<br><span class="font-bold text-base">${data.current.air_quality.pm2_5.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-yellow-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">PM10<br><span class="font-bold text-base">${data.current.air_quality.pm10.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-red-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">CO<br><span class="font-bold text-base">${data.current.air_quality.co.toFixed(1)}</span></div>
+        <div class="bg-blue-50 dark:bg-blue-500/20 p-3 rounded-xl text-sm font-medium text-slate-900 dark:text-white">NO2<br><span class="font-bold text-base">${data.current.air_quality.no2.toFixed(1)}</span></div>
+    </div>
+  `;
+}
+
+function renderSunData(data) {
+  document.getElementById("sunCard").innerHTML = `
+    <h2 class="text-xl font-bold mb-4">Sun Cycle</h2>
+    <div class="space-y-4">
+        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center transition-colors duration-300">
+          <span class="font-medium">☀️ Sunrise</span>
+          <span class="font-bold">${data.forecast.forecastday[0].astro.sunrise}</span>
+        </div>
+        <div class="bg-blue-50 dark:bg-slate-700/50 p-4 rounded-xl flex justify-between items-center transition-colors duration-300">
+          <span class="font-medium">🌙 Sunset</span>
+          <span class="font-bold">${data.forecast.forecastday[0].astro.sunset}</span>
+        </div>
+    </div>
+  `;
+}
+
+function renderChart(data) {
+  const ctx = document.getElementById("tempChart").getContext("2d");
+  const hourlyData = data.forecast.forecastday[0].hour;
+  const labels = hourlyData.map((h) => h.time.split(" ")[1]);
+  const temps = hourlyData.map((h) => h.temp_c);
+
+  if (myChart) myChart.destroy();
+  myChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Temp (°C)",
+          data: temps,
+          borderColor: "#7aa2ff",
+          tension: 0.4,
+          fill: true,
+        },
+      ],
+    },
+    options: { responsive: true, maintainAspectRatio: false },
+  });
+}
+
+// --- D. UTILITIES ---
+function showToast(message, type = "info") {
+  const container = document.getElementById("toastContainer");
+  const toast = document.createElement("div");
+  const colors = {
+    success: "bg-green-600",
+    error: "bg-red-600",
+    info: "bg-blue-600",
+  };
+  toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg mb-2 transition-all`;
+  toast.innerText = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function toggleFavourite(city) {
+  let favs = JSON.parse(localStorage.getItem("favs")) || [];
+  if (favs.includes(city)) {
+    favs = favs.filter((item) => item !== city);
+    showToast(`${city} removed`, "info");
+  } else {
+    favs.unshift(city);
+    showToast(`${city} added to favourites!`, "success");
+  }
+  localStorage.setItem("favs", JSON.stringify(favs));
+  renderFavoritesList();
+}
+
+async function renderFavoritesList() {
+  const favs = JSON.parse(localStorage.getItem("favs")) || [];
+  const favContainer = document.getElementById("favCardsContainer");
+  if (!favContainer) return;
+  const recentFavs = favs.slice(0, 2);
+  const colors = ["bg-pink-500", "bg-orange-400"];
+  const favResults = await Promise.all(
+    recentFavs.map((city) => getFavoriteData(city)),
+  );
+  favContainer.innerHTML = favResults
+    .map((data, index) => {
+      if (!data) return "";
+      return `
+      <button onclick="getWeather('${data.location.name}')" class="${colors[index]} p-4 rounded-3xl w-full text-white flex justify-between items-center transition-transform hover:scale-[1.02] shadow-sm">
+        <div class="text-[10px] text-left"><div>💨 Wind: ${data.current.wind_kph} km/h</div><div>💧 Hum: ${data.current.humidity} %</div></div>
+        <div class="text-right"><div>📍 ${data.location.name}</div><div class="text-2xl font-bold">${Math.round(data.current.temp_c)}°</div></div>
+      </button>`;
+    })
+    .join("");
+}
+
+async function getFavoriteData(city) {
+  try {
+    const response = await fetch(
+      `${BASE_URL}?key=${API_KEY}&q=${city}&aqi=no&alerts=no`,
+    );
+    return await response.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function updateDateTime() {
+  const now = new Date();
+  document.getElementById("clock").textContent = now.toLocaleTimeString(
+    "en-US",
+    { hour: "2-digit", minute: "2-digit", hour12: true },
+  );
+  document.getElementById("date").textContent = now.toLocaleDateString(
+    "en-US",
+    { weekday: "long", day: "numeric", month: "long", year: "numeric" },
+  );
+}
+
+
+const API_KEY = "0b05a79433c14784bf165552261506";
+const BASE_URL = "https://api.weatherapi.com/v1/forecast.json";
