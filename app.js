@@ -3,25 +3,25 @@
 // ==========================================
 let debounceTimer;
 let myChart;
- 
+
 // ==========================================
 // ZONE 2: INITIALIZATION
 // ==========================================
 window.addEventListener("DOMContentLoaded", () => {
   const savedTheme = localStorage.getItem("theme") || "dark";
   if (savedTheme === "dark") document.documentElement.classList.add("dark");
- 
+
   renderSearchBar();
   renderFavoritesList();
   getWeather("London");
   updateDateTime();
   setInterval(updateDateTime, 1000);
 });
- 
+
 // ==========================================
 // ZONE 3: FUNCTIONS
 // ==========================================
- 
+
 // --- A. UI & ERROR HANDLING ---
 function showLoadingSkeletons() {
   const forecastSkeleton = `<div class="animate-pulse bg-slate-200 dark:bg-slate-700 rounded-2xl p-4 h-24"></div>`;
@@ -32,7 +32,7 @@ function showLoadingSkeletons() {
   document.getElementById("sunCard").innerHTML =
     '<div class="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded-3xl"></div>';
 }
- 
+
 function renderError(message) {
   document.querySelector("main").innerHTML = `
     <div class="flex flex-col items-center justify-center h-full text-center p-10 bg-white dark:bg-[#2d2d5e] rounded-3xl">
@@ -41,7 +41,7 @@ function renderError(message) {
       <button onclick="location.reload()" class="bg-red-500 text-white px-6 py-2 rounded-xl hover:bg-red-600 transition">Retry</button>
     </div>`;
 }
- 
+
 // --- B. GEOLOCATION ---
 function getMyLocation() {
   showToast("Fetching your location...", "info");
@@ -55,12 +55,12 @@ function getMyLocation() {
     showToast("Geolocation not supported.", "error");
   }
 }
- 
+
 // --- C. THEME & SEARCH ---
 // Is code ko copy karke apni app.js mein purane setTheme ki jagah paste kar dein
 function setTheme(mode) {
   const root = document.documentElement;
- 
+
   if (mode === "dark") {
     root.classList.add("dark");
     localStorage.setItem("theme", "dark");
@@ -68,12 +68,12 @@ function setTheme(mode) {
     root.classList.remove("dark");
     localStorage.setItem("theme", "light");
   }
- 
+
   // Chart ke colors update karne ke liye
   if (typeof myChart !== "undefined" && myChart) {
     const isDark = root.classList.contains("dark");
     const gridColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
- 
+
     myChart.options.scales.x.grid.color = gridColor;
     myChart.options.scales.y.grid.color = gridColor;
     myChart.options.scales.x.ticks.color = isDark ? "#fff" : "#000";
@@ -81,7 +81,7 @@ function setTheme(mode) {
     myChart.update();
   }
 }
- 
+
 function renderSearchBar() {
   const searchContainer = document.getElementById("searchSection");
   if (searchContainer) {
@@ -95,7 +95,7 @@ function renderSearchBar() {
     });
   }
 }
- 
+
 // --- D. DATA FETCHING ---
 async function getWeather(city) {
   try {
@@ -116,14 +116,16 @@ async function getWeather(city) {
     );
   }
 }
- 
+
 // --- E. RENDERING COMPONENTS ---
 function renderCurrentWeather(data) {
   const favs = JSON.parse(localStorage.getItem("favs")) || [];
   const isFav = favs.includes(data.location.name);
   document.getElementById("currentWeather").innerHTML = `
     <div class="bg-blue-400 rounded-3xl p-6 h-full text-white relative shadow-md">
-        <button onclick="toggleFavourite('${data.location.name}')" class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform cursor-pointer ${isFav ? "text-red-500" : "text-white"}">❤️</button>
+<button onclick="toggleFavourite('${data.location.name}')" class="absolute top-4 right-4 text-2xl hover:scale-110 transition-transform cursor-pointer">
+  <span class="${isFav ? 'text-red-500' : 'text-white'}">❤️</span>
+</button>
         <h2 class="text-2xl font-bold">${data.location.name}</h2>
         <img class="w-28 mx-auto" src="${data.current.condition.icon}">
         <h1 class="text-6xl font-bold text-center my-4">${Math.round(data.current.temp_c)}°</h1>
@@ -134,7 +136,7 @@ function renderCurrentWeather(data) {
         </div>
     </div>`;
 }
- 
+
 function renderForecast(data) {
   document.getElementById("forecastContainer").innerHTML =
     data.forecast.forecastday
@@ -148,7 +150,7 @@ function renderForecast(data) {
       )
       .join("");
 }
- 
+
 function renderAQI(data) {
   document.getElementById("aqiCard").innerHTML = `
     <h2 class="text-xl font-bold mb-4">Air Quality</h2>
@@ -209,7 +211,7 @@ function renderSunData(data) {
     </div>
   `;
 }
- 
+
 function renderChart(data) {
   const ctx = document.getElementById("tempChart").getContext("2d");
   if (myChart) myChart.destroy();
@@ -232,7 +234,7 @@ function renderChart(data) {
     options: { responsive: true, maintainAspectRatio: false },
   });
 }
- 
+
 function showToast(message, type = "info") {
   const container = document.getElementById("toastContainer");
   const toast = document.createElement("div");
@@ -241,30 +243,51 @@ function showToast(message, type = "info") {
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
- 
+
 function toggleFavourite(city) {
   let favs = JSON.parse(localStorage.getItem("favs")) || [];
-  favs.includes(city)
-    ? (favs = favs.filter((item) => item !== city))
-    : favs.unshift(city);
+
+  const normalizedCity = city.toLowerCase();
+  const exists = favs.some((c) => c.toLowerCase() === normalizedCity);
+
+  if (exists) {
+    favs = favs.filter((c) => c.toLowerCase() !== normalizedCity);
+    showToast(`${city} has been removed from favourites`, "error");
+  } else {
+    favs.push(city);
+    showToast(`${city} has been added to favourites`, "success");
+  }
+
   localStorage.setItem("favs", JSON.stringify(favs));
+
   renderFavoritesList();
 }
- 
+
 async function renderFavoritesList() {
-  const favs = JSON.parse(localStorage.getItem("favs")) || [];
+  let favs = JSON.parse(localStorage.getItem("favs")) || [];
+
+  // ✅ REMOVE duplicates from storage itself (safety layer)
+  favs = [...new Set(favs.map((c) => c.toLowerCase()))];
+
+  localStorage.setItem("favs", JSON.stringify(favs));
+
   const container = document.getElementById("favCardsContainer");
   if (!container) return;
-  const results = await Promise.all(favs.slice(0, 2).map(getFavoriteData));
+
+  const results = await Promise.all(favs.map(getFavoriteData));
+
   container.innerHTML = results
-    .map((data, i) =>
+    .map((data) =>
       data
-        ? `<button onclick="getWeather('${data.location.name}')" class="bg-pink-500 p-4 rounded-3xl w-full text-white flex justify-between items-center"><div>📍 ${data.location.name}</div><div class="font-bold">${Math.round(data.current.temp_c)}°</div></button>`
-        : "",
+        ? `<button onclick="getWeather('${data.location.name}')" class="bg-pink-500 p-4 rounded-3xl w-full text-white flex justify-between items-center">
+            <div>📍 ${data.location.name}</div>
+            <div class="font-bold">${Math.round(data.current.temp_c)}°</div>
+          </button>`
+        : ""
     )
     .join("");
 }
- 
+
 async function getFavoriteData(city) {
   try {
     return await (
@@ -274,7 +297,7 @@ async function getFavoriteData(city) {
     return null;
   }
 }
- 
+
 function updateDateTime() {
   const now = new Date();
   document.getElementById("clock").textContent = now.toLocaleTimeString(
