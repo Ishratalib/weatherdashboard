@@ -55,19 +55,6 @@ Weather Dashboard/
 │
 ├── index.html
 ├── app.js
-├── config.js
-└── README.md
-```
-
-> For public GitHub repositories, `config.js` should contain your local API configuration and should not contain a real API key committed to GitHub.
-
-A safer public repository structure is:
-
-```text
-Weather Dashboard/
-│
-├── index.html
-├── app.js
 ├── config.example.js
 ├── .gitignore
 └── README.md
