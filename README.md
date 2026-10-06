@@ -4,12 +4,7 @@ A responsive weather dashboard built with **HTML, JavaScript, Tailwind CSS, and 
 
 ## 🌐 Live Demo
 
-[View Live Demo](https://ishratalib.github.io/weatherdashboard/)
-
-## 📂 GitHub Repository
-
-[View Source Code](https://github.com/Ishratalib/weatherdashboard)
-
+(https://ishratalib.github.io/weatherdashboard/)
 ---
 
 ## ✨ Features
