@@ -1,40 +1,12 @@
-# Weather Dashboard 🌤️
+# Weather Dashboard
 
 A responsive weather dashboard built with **HTML5, JavaScript, Tailwind CSS, Chart.js, and WeatherAPI**. The application allows users to search for cities, view current weather conditions, check a 5-day forecast, explore air-quality information, view sunrise and sunset times, and save favourite cities.
 
-## 🌐 Live Demo
+## Live Demo
 
 [View Live Demo](https://ishratalib.github.io/weatherdashboard/)
 
----
-
-## ✨ Features
-
-* 🌍 Search weather by city
-* 📍 Get weather using the user's current location
-* 🌡️ Display current temperature and weather conditions
-* 💨 Show wind speed and humidity
-* 📅 5-day weather forecast
-* 🌫️ Air-quality information including:
-
-  * PM2.5
-  * PM10
-  * CO
-  * NO₂
-* ☀️ Sunrise and sunset information
-* 📊 Hourly temperature chart
-* ❤️ Save and manage favourite cities
-* 💾 Favourite cities stored using browser `localStorage`
-* 🌓 Light and dark mode
-* 🔔 Toast notifications
-* ⏳ Loading skeletons while weather data is being fetched
-* ❌ Error handling for invalid or unavailable cities
-* 📱 Responsive layout for desktop, tablet, and mobile
-* ⚡ Search debouncing to reduce unnecessary API requests
-
----
-
-## 🛠️ Technologies Used
+## Technologies Used
 
 * **HTML5** — Page structure
 * **JavaScript (ES6+)** — Application logic and API handling
@@ -48,9 +20,35 @@ A responsive weather dashboard built with **HTML5, JavaScript, Tailwind CSS, Cha
 
 ---
 
-## 📂 Project Structure
+## Features
 
-```text
+* Search weather by city
+* Get weather using the user's current location
+* Display current temperature and weather conditions
+* Show wind speed and humidity
+* 5-day weather forecast
+* Air-quality information including:
+
+  * PM2.5
+  * PM10
+  * CO
+  * NO₂
+* Sunrise and sunset information
+* Hourly temperature chart
+* Save and manage favourite cities
+* Favourite cities stored using browser `localStorage`
+* Light and dark mode
+* Toast notifications
+* Loading skeletons while weather data is being fetched
+* Error handling for invalid or unavailable cities
+* Responsive layout for desktop, tablet, and mobile
+* Search debouncing to reduce unnecessary API requests
+
+---
+
+## Project Structure
+
+```text id="qkq6cb"
 Weather Dashboard/
 │
 ├── index.html
@@ -62,7 +60,7 @@ Weather Dashboard/
 
 ---
 
-## 📄 File Overview
+## File Overview
 
 ### `index.html`
 
@@ -105,7 +103,7 @@ Contains the WeatherAPI configuration used by the application.
 
 For local development, it contains:
 
-```javascript
+```javascript id="m2n4lz"
 const API_KEY = "YOUR_WEATHER_API_KEY";
 const BASE_URL = "https://api.weatherapi.com/v1/forecast.json";
 ```
@@ -114,7 +112,7 @@ For a public GitHub repository, the real API key should not be committed.
 
 ---
 
-## 🚀 How to Run Locally
+## How to Run Locally
 
 This is a **frontend project**, so no PHP, Node.js, or database setup is required.
 
@@ -122,25 +120,23 @@ This is a **frontend project**, so no PHP, Node.js, or database setup is require
 
 Open your terminal and run:
 
-```bash
+```bash id="zv2q8p"
 git clone "YOUR_REPOSITORY_URL"
 ```
 
 **For example:**
 
-```bash
+```bash id="9v7h4a"
 git clone https://github.com/Ishratalib/weatherdashboard.git
 ```
 
 Then move into the project folder:
 
-```bash
+```bash id="4r9b1q"
 cd weatherdashboard
 ```
 
 You can also download the project as a ZIP file and extract it.
-
----
 
 ### 2. Configure WeatherAPI
 
@@ -150,14 +146,14 @@ Create a WeatherAPI account and obtain your own API key.
 
 Then create a local `config.js` file:
 
-```javascript
+```javascript id="5d8x0v"
 const API_KEY = "YOUR_WEATHER_API_KEY";
 const BASE_URL = "https://api.weatherapi.com/v1/forecast.json";
 ```
 
 Replace:
 
-```text
+```text id="s6g5tq"
 YOUR_WEATHER_API_KEY
 ```
 
@@ -165,7 +161,7 @@ with your own API key.
 
 If the repository contains `config.example.js`, copy it and rename the copy to:
 
-```text
+```text id="v0y4x2"
 config.js
 ```
 
@@ -177,13 +173,11 @@ Then add your API key to `config.js`.
 
 Add `config.js` to `.gitignore`:
 
-```gitignore
+```gitignore id="5n0yq3"
 config.js
 ```
 
 This allows you to keep your local API configuration without publishing your API key.
-
----
 
 ### 3. Run the Project
 
@@ -197,11 +191,11 @@ The easiest way to run the project locally is with **VS Code Live Server**.
 
 ---
 
-## 🔑 API Configuration
+## API Configuration
 
 The application uses the WeatherAPI forecast endpoint:
 
-```text
+```text id="7j3n2d"
 https://api.weatherapi.com/v1/forecast.json
 ```
 
@@ -218,7 +212,7 @@ The project uses the API key from the local `config.js` file.
 
 ---
 
-## 🔍 How the Application Works
+## How the Application Works
 
 When the application loads:
 
@@ -235,11 +229,11 @@ This search debouncing helps prevent unnecessary API requests while the user is 
 
 ---
 
-## ❤️ Favourite Cities
+## Favourite Cities
 
 Favourite cities are stored in the browser using:
 
-```text
+```text id="w8q3hx"
 localStorage
 ```
 
@@ -254,12 +248,12 @@ The application also handles duplicate favourite cities.
 
 ---
 
-## 🌓 Theme Switching
+## Theme Switching
 
 The dashboard supports:
 
-* ☀️ Light Mode
-* 🌙 Dark Mode
+* Light Mode
+* Dark Mode
 
 The selected theme is stored in `localStorage`, allowing the preference to remain when the user revisits the application.
 
@@ -267,7 +261,7 @@ The Chart.js temperature chart also updates its visual settings when the theme c
 
 ---
 
-## 📍 Current Location
+## Current Location
 
 The **Use My Location** feature uses the browser's Geolocation API.
 
@@ -277,7 +271,7 @@ If location access is denied or unavailable, the application displays a notifica
 
 ---
 
-## 📊 Temperature Chart
+## Temperature Chart
 
 The dashboard uses **Chart.js** to display hourly temperature data for the current forecast day.
 
@@ -285,7 +279,7 @@ When new weather data is loaded, the existing chart is replaced with a new chart
 
 ---
 
-## ⏳ Loading & Error States
+## Loading & Error States
 
 The application includes loading skeletons while weather information is being retrieved.
 
@@ -295,19 +289,19 @@ Toast notifications are also used to provide feedback for different actions.
 
 ---
 
-## 📱 Responsive Design
+## Responsive Design
 
 The dashboard is designed to work across different screen sizes:
 
-* 📱 Mobile
-* 📲 Tablet
-* 💻 Desktop
+* Mobile
+* Tablet
+* Desktop
 
 Tailwind CSS responsive utility classes are used throughout the interface to adapt the layout.
 
 ---
 
-## 🎯 Project Purpose
+## Project Purpose
 
 This project was built to practice:
 
@@ -327,12 +321,6 @@ This project was built to practice:
 
 ---
 
-## 👩‍💻 Author
+## Author
 
 **Ishrat Talib**
-
-Frontend Web Development Project
-
-### Technologies
-
-`HTML5` · `JavaScript` · `Tailwind CSS` · `Chart.js` · `WeatherAPI` · `Fetch API` · `LocalStorage`
